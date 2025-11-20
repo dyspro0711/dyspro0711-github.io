@@ -3,19 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 2D RPG</title>
-    <link rel="stylesheet" href="rpg.css">
+    <title>🍪 쿠키 타이쿤</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="tycoon.css">
 </head>
-<body>
-    <h1>나만의 2D RPG</h1>
-    
-    <canvas id="gameCanvas" width="600" height="400"></canvas>
-    
-    <div class="controls">
-        <p><strong>이동:</strong> 화살표 키 (↑, ↓, ←, →)</p>
-        <p><strong>행동 (채집/공격):</strong> 스페이스바</p>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+
+    <div id="loading-message" class="fixed inset-0 bg-gray-900 flex items-center justify-center z-50">
+        <div class="text-xl font-bold text-yellow-500 animate-pulse">🍪 게임 데이터를 로딩 중...</div>
     </div>
 
-    <script src="rpg.js"></script>
+    <div id="game-content" class="container mx-auto p-4 flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-6 hidden">
+        
+        <div class="lg:w-1/3 flex flex-col space-y-6">
+            
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 space-y-3">
+                <h1 class="text-4xl font-extrabold text-yellow-500 mb-4 flex justify-between items-center">
+                    <span id="score" class="transition-colors duration-500">0</span>
+                    <span class="text-xl text-gray-400">Cookies</span>
+                </h1>
+                <p id="click-value-display" class="text-sm text-gray-300 border-t border-gray-700 pt-2">클릭당 쿠키: <span class="font-bold">0</span></p>
+                <p id="cps-display" class="text-sm text-gray-300">초당 쿠키: <span class="font-bold">0</span>/sec</p>
+                
+                <p id="prestige-bonus-display" class="text-xs text-purple-400">프레스티지 보너스: 0.00%</p>
+                <p id="gacha-bonus-display" class="text-xs text-red-400">뽑기 보너스(총): x1.0000</p>
+                <p id="luck-bonus-display" class="text-xs text-green-400">드랍 확률 보너스: x1.0</p>
+                <p id="god-bonus-display" class="text-xs text-blue-400 hidden">연구 포인트 획득: x1.0</p>
+
+                <div id="buff-status-display" class="text-sm text-center font-bold p-2 mt-3 rounded-lg bg-yellow-500 text-gray-900 shadow-lg hidden"></div>
+            </div>
+                        <div class="bg-gray-700 p-4 rounded-lg shadow-inner">
+                <h4 class="text-lg font-semibold text-yellow-400">🍪 쿠키 강화 보너스</h4>
+                <p class="text-gray-300">
+                    CPS 최종 배수: <span id="enhancement-bonus-display" class="font-bold text-xl text-green-400">x1.00</span>
+                </p>
+            </div>
+
+            <div class="flex flex-col items-center justify-center bg-gray-800 p-8 rounded-2xl shadow-2xl relative flex-grow min-h-[300px]">
+                <button id="cookie" class="text-[120px] rounded-full w-60 h-60 flex items-center justify-center shadow-2xl transform hover:scale-105">
+                    🍪
+                </button>
+            </div>
+            
+            <div class="space-y-3">
+                <div id="ending-message" class="p-4 bg-green-700 rounded-xl text-center font-bold text-lg shadow-inner hidden border border-green-400">
+                    🎉 최종 목표 (100경 쿠키) 달성!
+                </div>
+                
+                <button id="manual-save-button" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-lg">
+                    💾 게임 수동 저장
+                </button>
+
+                <button id="reset-game-button" class="w-full bg-red-800 text-white font-bold py-3 rounded-xl hover:bg-red-900 transition-colors shadow-lg mt-3">
+                    💥 게임 초기화 (기록 삭제)
+                </button>
+            </div>
+        </div>
+
+        <div class="lg:w-2/3 flex flex-col space-y-4">
+            
+            <div class="flex bg-gray-700 p-1 rounded-xl shadow-inner overflow-hidden">
+                <button id="tab-building-button" class="tab-button active w-1/5 py-3 px-2 rounded-lg hover:bg-gray-600 text-white font-semibold text-sm sm:text-base" data-tab="building-tab">
+                    건물
+                </button>
+                <button id="tab-upgrade-button" class="tab-button w-1/5 py-3 px-2 rounded-lg hover:bg-gray-600 text-white font-semibold text-sm sm:text-base" data-tab="upgrade-tab">
+                    업그레이드
+                </button>
+                <button id="tab-inventory-button" class="tab-button w-1/5 py-3 px-2 rounded-lg hover:bg-gray-600 text-white font-semibold text-sm sm:text-base" data-tab="inventory-tab">
+                    인벤토리
+                </button>
+                <button id="tab-prestige-button" class="tab-button w-1/5 py-3 px-2 rounded-lg hover:bg-gray-600 text-white font-semibold text-sm sm:text-base" data-tab="prestige-tab">
+                    환생/뽑기
+                </button>
+                <button id="tab-research-button" class="tab-button w-1/5 py-3 px-2 rounded-lg hover:bg-gray-600 text-white font-semibold text-sm sm:text-base" data-tab="research-tab">
+                    연구
+                </button>
+            </div>
+
+            <div id="tabs-content" class="flex-grow bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 overflow-y-auto h-[70vh]">
+
+                <div id="building-tab" class="tab-content-item space-y-4">
+                    <h2 class="text-2xl font-bold text-yellow-400 border-b-2 border-yellow-500 pb-2">🍪 건물 구매</h2>
+                    <div id="buildings-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
+                </div>
+
+                <div id="upgrade-tab" class="tab-content-item space-y-4 hidden">
+                    <h2 class="text-2xl font-bold text-yellow-400 border-b-2 border-yellow-500 pb-2">✨ 업그레이드</h2>
+                    
+                    <h3 class="text-xl font-semibold text-gray-300 mt-4">클릭 증폭 업그레이드</h3>
+                    <div id="click-upgrades-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
+
+                    <h3 class="text-xl font-semibold text-gray-300 mt-6 pt-4 border-t border-gray-700">특수 건물 티어 업그레이드</h3>
+                    <div id="special-upgrades-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
+                </div>
+
+                <div id="inventory-tab" class="tab-content-item space-y-4 hidden">
+                    <h2 class="text-2xl font-bold text-yellow-400 border-b-2 border-yellow-500 pb-2">🎒 아이템 인벤토리</h2>
+                    <div id="inventory-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
+                    
+                    <h2 class="text-2xl font-bold text-yellow-400 border-b-2 border-yellow-500 pb-2 mt-6 pt-4">🛠️ 제작 (패시브 아티팩트)</h2>
+                    <div id="crafting-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
+                </div>
+
+                <div id="prestige-tab" class="tab-content-item space-y-4 hidden">
+                    <h2 class="text-2xl font-bold text-purple-400 border-b-2 border-purple-500 pb-2">🌌 환생 (프레스티지)</h2>
+                    <div class="bg-gray-700 p-5 rounded-xl space-y-3 shadow-inner border border-purple-800">
+                        <p class="text-lg">현재 프레스티지 포인트: <span id="prestige-points" class="font-extrabold text-purple-300 text-2xl">0</span>점</p>
+                        <p class="text-sm text-gray-400">각 포인트당 모든 생산량에 <span class="font-bold text-purple-200">+2%</span> 보너스가 영구 적용됩니다.</p>
+                        <div id="ascension-info" class="p-3 mt-3 bg-purple-900/50 rounded-lg hidden text-sm font-medium"></div>
+                        <button id="ascension-button" class="w-full bg-purple-800 text-white font-bold py-3 rounded-lg mt-3 opacity-50 cursor-not-allowed transition-all shadow-md">
+                            환생하기 (게임 초기화)
+                        </button>
+                    </div>
+
+                    <h2 class="text-2xl font-bold text-red-400 border-b-2 border-red-500 pb-2 mt-6">🎁 뽑기 (Gacha)</h2>
+                    <div class="bg-gray-700 p-5 rounded-xl space-y-4 shadow-inner border border-red-800">
+                        <p class="text-lg">
+                            다음 뽑기에 필요한 쿠키: <span class="font-bold text-red-300" id="gacha-cost-display">100</span>
+                        </p>
+                        <p class="text-xs text-gray-400">
+                            (주의: 뽑기를 할 때마다 다음 필요 비용이 10배 증가합니다.)
+                        </p>
+                        <button id="gacha-button" class="w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition-colors shadow-md">
+                            뽑기 시도
+                        </button>
+                        <div id="gacha-results" class="mt-3 text-center font-bold text-xl p-2 bg-gray-800 rounded-lg">
+                            (여기에 뽑기 결과가 표시됩니다)
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-300 mt-5 border-t border-gray-600 pt-3">뽑기 영구 보너스 현황</h3>
+                        <div id="gacha-list-container" class="grid grid-cols-1 gap-3 p-3 bg-gray-900/50 rounded-lg">
+                            </div>
+                    </div>
+                </div> <div id="research-tab" class="tab-content-item space-y-4 hidden">
+                    <h2 class="text-2xl font-bold text-blue-400 border-b-2 border-blue-500 pb-2">🔬 연구소</h2>
+                    <div class="bg-gray-700 p-5 rounded-xl space-y-3 shadow-inner border border-blue-800">
+                        <p class="text-lg">보유 연구 포인트: <span id="research-points-display" class="font-extrabold text-blue-300 text-2xl">0</span> RP</p>
+                        <p class="text-sm text-gray-400">환생 시 프레스티지 포인트 10점당 1 RP를 획득합니다. (God 등급 보유 시 2 RP)</p>
+                    </div>
+                    <div class="bg-gray-800 p-5 rounded-xl shadow-lg border border-gray-700 space-y-3">
+                        <h3 class="text-xl font-semibold text-yellow-400">🔗 쿠키 강화하기</h3>
+                        <p id="wordbook-desc" class="text-gray-300">환생을 3회 이상 달성하면 잠금 해제됩니다.</p>
+                        
+                        <a id="wordbook-link" href="#" rel="noopener noreferrer" 
+                           class="inline-block w-full text-center text-gray-900 font-bold py-3 px-5 rounded-lg transition-colors shadow-md text-lg">
+                            이동하기
+                        </a>
+                    </div>
+                    <div id="research-tree-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
+                </div>
+
+            </div> </div>
+    </div>
+    
+  
+    <div id="temporary-message" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 p-3 rounded-xl shadow-2xl z-50 text-white font-semibold opacity-0 pointer-events-none transition-opacity duration-300">
+        </div>
+    <script src="tycoon.js" defer></script>
 </body>
 </html>
